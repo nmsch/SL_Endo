@@ -2,15 +2,14 @@
 # coding: utf-8
 
 # In[1]:
-
 import streamlit as st
 
-# ---- Set global styles (white background, navy accent) ----
+# --- Global style: white background, navy headings/buttons ---
 NAVY = "#002147"
 st.set_page_config(page_title="Endodontic Diagnosis Tool", layout="centered")
 st.markdown(f"""
 <style>
-body, .stApp, .block-container, .main {background-color:#fafcff !important;}
+body, .stApp, .block-container, .main {{background-color:#fafcff !important;}}
 h1,h2,h3,.tooth-heading,.stRadio>div,label, .stTextInput>div>input,.stCheckbox>label>div,.stTextArea>div textarea
     {{color:{NAVY} !important;}}
 .stButton>button, .stTextInput>div>input, .stTextArea>div textarea, .stSelectbox>div{{ background-color: #fff !important; color: {NAVY} !important; border-color: {NAVY} !important; font-weight:600 !important; }}
@@ -121,28 +120,23 @@ def periapical_screen():
 def additional_tests_screen():
     st.markdown(f"<span style='color:{NAVY}; font-weight:700'>Additional Testing</span>", unsafe_allow_html=True)
     dprob = st.checkbox("Any deep or narrow probings?")
-    dtext = st.text_input("If probing, details (e.g. 8mm buccal pocket):")
+    dtext = st.text_input("If probing, details (e.g. 8mm buccal pocket):", key="probing_detail")
     bstick = st.checkbox("Bite stick positive?")
-    btext = st.text_input("If yes, which cusp(s)?")
+    btext = st.text_input("If yes, which cusp(s)?", key="bite_stick_detail")
     caries = st.checkbox("Caries present?")
-    cariest = st.text_input("If yes, where?")
+    cariest = st.text_input("If yes, where?", key="caries_detail")
     recent = st.checkbox("Recent dental work?")
-    recentt = st.text_input("If yes, when?")
+    recentt = st.text_input("If yes, when?", key="recent_detail")
     mast = st.checkbox("Discomfort with muscles of mastication?")
-    mastt = st.text_input("Which muscles/side?")
-    occ = st.text_input("Occlusion description:")   # <- Now a single-line entry
+    mastt = st.text_input("Which muscles/side?", key="mast_detail")
+    occ = st.text_input("Occlusion description:", key="occlusion")
     if st.button("Show Summary & Recommendation"):
         st.session_state["probing"] = dprob
-        st.session_state["probing_detail"] = dtext
         st.session_state["bite_stick"] = bstick
-        st.session_state["bite_stick_detail"] = btext
         st.session_state["caries"] = caries
-        st.session_state["caries_detail"] = cariest
         st.session_state["recent"] = recent
-        st.session_state["recent_detail"] = recentt
         st.session_state["mast"] = mast
-        st.session_state["mast_detail"] = mastt
-        st.session_state["occlusion"] = occ
+        # Details already in session_state by text_input keys
         st.session_state["page"] = "summary"
         st.experimental_rerun()
 
@@ -169,7 +163,6 @@ def summary_screen():
     chief = st.session_state.get("chief", "")
     pulpal = st.session_state.get("pulpal", [])
     peri = st.session_state.get("periapical", [])
-    # Pulpal diagnosis
     pulpal_diag = "Not determined"
     if any("Symptomatic irreversible" in s for s in pulpal) or "Sensitive to cold and lingers (≥30s)" in pulpal or "Sensitive to hot and lingers (≥30s)" in pulpal:
         pulpal_diag = "Symptomatic irreversible pulpitis"
@@ -181,7 +174,6 @@ def summary_screen():
         pulpal_diag = "Necrotic pulp or previously treated"
     elif "No sensitivity to hot or cold" in pulpal:
         pulpal_diag = "Normal pulp / Asymptomatic irreversible pulpitis / Previously treated / Necrotic pulp (need more info)"
-    # Periapical diagnosis
     d_peri = []
     if "Sensitive to biting" in peri or "Sensitive to percussion" in peri or "Sensitive to palpation" in peri:
         d_peri.append("Symptomatic apical periodontitis")
@@ -192,13 +184,11 @@ def summary_screen():
     if "No symptoms but radiolucency on Xrays" in peri:
         d_peri.append("Asymptomatic apical periodontitis")
     periapical_diag = ', '.join(d_peri) if d_peri else "Not determined"
-
     st.markdown(f"<span style='color:{NAVY}; font-weight:700'>Tooth: {tooth}</span>", unsafe_allow_html=True)
     st.markdown(f"**Chief Complaint:** {chief if chief else 'Not provided'}")
     st.markdown(f"**Pulpal diagnosis:** {pulpal_diag}")
     st.markdown(f"**Periapical diagnosis:** {periapical_diag}")
 
-    # Red flag for mismatch
     pulpal_resp = any(x in pulpal for x in [
         "Sensitive to cold but resolves quickly",
         "Sensitive to cold and lingers (≥30s)",
@@ -209,37 +199,36 @@ def summary_screen():
         st.error("Red flag: Pulpal diagnosis inconsistent with periapical findings. Recommend repeat testing.")
 
     st.markdown("**Additional testing notes:**")
-    if st.session_state["probing"] and st.session_state["probing_detail"].strip():
+    if st.session_state["probing"] and st.session_state.get("probing_detail", "").strip():
         st.markdown(f"- Deep/narrow probings: {st.session_state['probing_detail']}")
-    if st.session_state["bite_stick"] and st.session_state["bite_stick_detail"].strip():
+    if st.session_state["bite_stick"] and st.session_state.get("bite_stick_detail", "").strip():
         st.markdown(f"- Bite stick positive: {st.session_state['bite_stick_detail']}")
-    if st.session_state["caries"] and st.session_state["caries_detail"].strip():
+    if st.session_state["caries"] and st.session_state.get("caries_detail", "").strip():
         st.markdown(f"- Caries present: {st.session_state['caries_detail']}")
-    if st.session_state["recent"] and st.session_state["recent_detail"].strip():
+    if st.session_state["recent"] and st.session_state.get("recent_detail", "").strip():
         st.markdown(f"- Recent dental work: {st.session_state['recent_detail']}")
-    if st.session_state["mast"] and st.session_state["mast_detail"].strip():
+    if st.session_state["mast"] and st.session_state.get("mast_detail", "").strip():
         st.markdown(f"- Discomfort with muscles of mastication: {st.session_state['mast_detail']}")
-    if st.session_state["occlusion"].strip():
+    if st.session_state.get("occlusion", "").strip():
         st.markdown(f"- Occlusion: {st.session_state['occlusion']}")
     if not any([
         st.session_state["probing"], st.session_state["bite_stick"], st.session_state["caries"],
-        st.session_state["recent"], st.session_state["mast"], st.session_state["occlusion"].strip()]):
+        st.session_state["recent"], st.session_state["mast"], st.session_state.get("occlusion", "").strip()]):
         st.markdown("None")
 
     if st.session_state["probing"] or st.session_state["bite_stick"]:
         st.error("Warning: Deep probing or bite stick positive – Possible crack or fracture present.")
 
-    # -- Multiple diagnosis prevention for recommendations --
+    # Multiple/end diagnosis prevention
     pulp_diags = []
     if "Symptomatic irreversible pulpitis" in pulpal_diag: pulp_diags.append("symp")
     if "Reversible pulpitis" in pulpal_diag: pulp_diags.append("rev")
     if "Possible reversible pulpitis" in pulpal_diag: pulp_diags.append("possrev")
     if "Necrotic pulp or previously treated" in pulpal_diag: pulp_diags.append("necro")
     multi_pulpal = len(pulp_diags) > 1
-
     multi_peri = periapical_diag.count(",") > 0
 
-    if multi_pulpal or multi_peri:
+    if multi_pulpal or multi_peri or pulpal_diag == "Not determined" or periapical_diag == "Not determined":
         st.info("Clinical findings are not conclusive. No specific treatment recommendation can be provided until a firm diagnosis is made. Consider more testing, radiographic imaging, or future AI x-ray review features.")
     else:
         previously_treated = "previously treated" in pulpal_diag or "Necrotic pulp" in pulpal_diag
@@ -247,14 +236,14 @@ def summary_screen():
         any_symptoms = "Sensitive to biting" in peri or "Sensitive to percussion" in peri or "Sensitive to palpation" in peri
         rec = treatment_recommendations(
             pulpal_diag, periapical_diag, st.session_state["caries"],
-            st.session_state["probing_detail"], st.session_state["bite_stick"],
+            st.session_state.get("probing_detail",""), st.session_state["bite_stick"],
             previously_treated, radiolucency, any_symptoms
         )
         st.markdown("**Treatment Recommendation:**")
         st.success(rec)
     st.info("*For clinical decision-making, always corroborate these with full clinical exam and radiographic review.")
 
-# ---- Main App Logic ----
+# ---- Main App Control Logic ----
 if "page" not in st.session_state: st.session_state["page"] = "tooth"
 st.title("Endodontic Diagnosis Tool")
 st.caption("by Summit Analytics LLC")
@@ -277,8 +266,5 @@ if page != "tooth":
     if st.button("Start Over"):
         reset_state()
         st.experimental_rerun()
-
-
-
 
 
