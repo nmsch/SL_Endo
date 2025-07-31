@@ -3,29 +3,19 @@
 
 # In[1]:
 
-
 import streamlit as st
 
-# --- Set Navy color for headings and white for backgrounds/text as much as possible ---
-st.set_page_config(page_title="Endodontic Diagnosis", layout="centered")
+# ---- Set global styles (white background, navy accent) ----
 NAVY = "#002147"
+st.set_page_config(page_title="Endodontic Diagnosis Tool", layout="centered")
 st.markdown(f"""
-    <style>
-    .stButton > button, .stTextInput > div > input, .stTextArea > div textarea,
-    .stCheckbox > label > div {{
-        background-color: white !important;
-        color: {NAVY} !important;
-        border-color: {NAVY} !important;
-        font-weight: 600 !important;
-    }}
-    .stRadio > div, .stSelectbox > div {{
-        color: {NAVY} !important;
-    }}
-    .tooth-heading {{
-        color: {NAVY}; font-size: 21px; font-weight: bold; margin-top:24px; margin-bottom:10px;
-    }}
-    </style>
-    """, unsafe_allow_html=True)
+<style>
+body, .stApp, .block-container, .main {background-color:#fafcff !important;}
+h1,h2,h3,.tooth-heading,.stRadio>div,label, .stTextInput>div>input,.stCheckbox>label>div,.stTextArea>div textarea
+    {{color:{NAVY} !important;}}
+.stButton>button, .stTextInput>div>input, .stTextArea>div textarea, .stSelectbox>div{{ background-color: #fff !important; color: {NAVY} !important; border-color: {NAVY} !important; font-weight:600 !important; }}
+</style>
+""", unsafe_allow_html=True)
 
 def reset_state():
     for key in list(st.session_state.keys()):
@@ -42,7 +32,6 @@ def tooth_selector():
                 st.session_state['tooth_type'] = "Permanent"
                 st.session_state['page'] = "chief"
                 st.experimental_rerun()
-
     st.markdown('<div class="tooth-heading">Primary Teeth (A–T)</div>', unsafe_allow_html=True)
     prim = [chr(i) for i in range(65, 85)]
     for row in range(0, 20, 8):
@@ -53,7 +42,6 @@ def tooth_selector():
                 st.session_state['tooth_type'] = "Primary"
                 st.session_state['page'] = "chief"
                 st.experimental_rerun()
-
     st.markdown('<div class="tooth-heading">Tooth Region</div>', unsafe_allow_html=True)
     reg = [
         "Upper left", "Upper right",
@@ -73,7 +61,6 @@ def tooth_selector():
         st.session_state['tooth_type'] = "Other"
         st.session_state['page'] = "chief"
         st.experimental_rerun()
-
 
 def chief_complaint_screen():
     st.markdown(f"<span style='color:{NAVY}; font-weight:700'>Tooth: {st.session_state['tooth']}</span>", unsafe_allow_html=True)
@@ -143,7 +130,7 @@ def additional_tests_screen():
     recentt = st.text_input("If yes, when?")
     mast = st.checkbox("Discomfort with muscles of mastication?")
     mastt = st.text_input("Which muscles/side?")
-    occ = st.text_area("Occlusion description:")
+    occ = st.text_input("Occlusion description:")   # <- Now a single-line entry
     if st.button("Show Summary & Recommendation"):
         st.session_state["probing"] = dprob
         st.session_state["probing_detail"] = dtext
@@ -159,19 +146,19 @@ def additional_tests_screen():
         st.session_state["page"] = "summary"
         st.experimental_rerun()
 
-def treatment_recommendations(pulpal, periapical, caries, probing_detail, bite_stick, previously_treated, radiolucency, symptoms):
+def treatment_recommendations(pulpal_diag, periapical_diag, caries, probing_detail, bite_stick, previously_treated, radiolucency, symptoms):
     if any([
-        "Necrotic pulp" in pulpal,
-        "Symptomatic irreversible pulpitis" in pulpal,
-        "Asymptomatic irreversible pulpitis" in pulpal
+        "Necrotic pulp" in pulpal_diag,
+        "Symptomatic irreversible pulpitis" in pulpal_diag,
+        "Asymptomatic irreversible pulpitis" in pulpal_diag
     ]):
         return "Root canal therapy or extraction (with or without replacement)"
     if previously_treated and radiolucency and (
-            "Asymptomatic apical periodontitis" in periapical or symptoms):
+            "Asymptomatic apical periodontitis" in periapical_diag or symptoms):
         return "Endodontic retreatment, apical surgery, or extraction (with or without replacement)"
     if any(x in probing_detail for x in ["5", "6", "7", "8", "9", "10", "11", "12"]):
         return "Open and medicate the tooth to see if symptoms resolve or extraction (with or without replacement)"
-    if "Reversible pulpitis" in pulpal:
+    if "Reversible pulpitis" in pulpal_diag:
         if (any(x in probing_detail for x in ["4", "5"]) and bite_stick):
             return "Place temporary crown and re-evaluate in 4–6 weeks"
         return "Caries removal or re-evaluate in 4–6 weeks" if caries else "Re-evaluate in 4–6 weeks"
@@ -205,12 +192,13 @@ def summary_screen():
     if "No symptoms but radiolucency on Xrays" in peri:
         d_peri.append("Asymptomatic apical periodontitis")
     periapical_diag = ', '.join(d_peri) if d_peri else "Not determined"
+
     st.markdown(f"<span style='color:{NAVY}; font-weight:700'>Tooth: {tooth}</span>", unsafe_allow_html=True)
     st.markdown(f"**Chief Complaint:** {chief if chief else 'Not provided'}")
     st.markdown(f"**Pulpal diagnosis:** {pulpal_diag}")
     st.markdown(f"**Periapical diagnosis:** {periapical_diag}")
 
-    # Red flag if mismatch
+    # Red flag for mismatch
     pulpal_resp = any(x in pulpal for x in [
         "Sensitive to cold but resolves quickly",
         "Sensitive to cold and lingers (≥30s)",
@@ -241,17 +229,29 @@ def summary_screen():
     if st.session_state["probing"] or st.session_state["bite_stick"]:
         st.error("Warning: Deep probing or bite stick positive – Possible crack or fracture present.")
 
-    previously_treated = "previously treated" in pulpal_diag or "Necrotic pulp" in pulpal_diag
-    radiolucency = ("No symptoms but radiolucency on Xrays" in peri) or ("Asymptomatic apical periodontitis" in periapical_diag)
-    any_symptoms = "Sensitive to biting" in peri or "Sensitive to percussion" in peri or "Sensitive to palpation" in peri
+    # -- Multiple diagnosis prevention for recommendations --
+    pulp_diags = []
+    if "Symptomatic irreversible pulpitis" in pulpal_diag: pulp_diags.append("symp")
+    if "Reversible pulpitis" in pulpal_diag: pulp_diags.append("rev")
+    if "Possible reversible pulpitis" in pulpal_diag: pulp_diags.append("possrev")
+    if "Necrotic pulp or previously treated" in pulpal_diag: pulp_diags.append("necro")
+    multi_pulpal = len(pulp_diags) > 1
 
-    rec = treatment_recommendations(
-        pulpal_diag, periapical_diag, st.session_state["caries"],
-        st.session_state["probing_detail"], st.session_state["bite_stick"],
-        previously_treated, radiolucency, any_symptoms
-    )
-    st.markdown("**Treatment Recommendation:**")
-    st.success(rec)
+    multi_peri = periapical_diag.count(",") > 0
+
+    if multi_pulpal or multi_peri:
+        st.info("Clinical findings are not conclusive. No specific treatment recommendation can be provided until a firm diagnosis is made. Consider more testing, radiographic imaging, or future AI x-ray review features.")
+    else:
+        previously_treated = "previously treated" in pulpal_diag or "Necrotic pulp" in pulpal_diag
+        radiolucency = ("No symptoms but radiolucency on Xrays" in peri) or ("Asymptomatic apical periodontitis" in periapical_diag)
+        any_symptoms = "Sensitive to biting" in peri or "Sensitive to percussion" in peri or "Sensitive to palpation" in peri
+        rec = treatment_recommendations(
+            pulpal_diag, periapical_diag, st.session_state["caries"],
+            st.session_state["probing_detail"], st.session_state["bite_stick"],
+            previously_treated, radiolucency, any_symptoms
+        )
+        st.markdown("**Treatment Recommendation:**")
+        st.success(rec)
     st.info("*For clinical decision-making, always corroborate these with full clinical exam and radiographic review.")
 
 # ---- Main App Logic ----
@@ -277,6 +277,8 @@ if page != "tooth":
     if st.button("Start Over"):
         reset_state()
         st.experimental_rerun()
+
+
 
 
 
