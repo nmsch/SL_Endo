@@ -6,53 +6,77 @@
 
 import streamlit as st
 
-# --- Tooth Selector as grid ---
-def select_tooth():
-    st.markdown("### Select tooth to evaluate")
-    type_select = st.radio("Tooth Type:", ["Permanent", "Primary", "Region"], horizontal=True)
-    selected = None
+# --- Set Navy color for headings and white for backgrounds/text as much as possible ---
+st.set_page_config(page_title="Endodontic Diagnosis", layout="centered")
+NAVY = "#002147"
+st.markdown(f"""
+    <style>
+    .stButton > button, .stTextInput > div > input, .stTextArea > div textarea,
+    .stCheckbox > label > div {{
+        background-color: white !important;
+        color: {NAVY} !important;
+        border-color: {NAVY} !important;
+        font-weight: 600 !important;
+    }}
+    .stRadio > div, .stSelectbox > div {{
+        color: {NAVY} !important;
+    }}
+    .tooth-heading {{
+        color: {NAVY}; font-size: 21px; font-weight: bold; margin-top:24px; margin-bottom:10px;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
 
-    if type_select == "Permanent":
-        permanent = [str(i) for i in range(1, 33)]
-        rows = 4
-        cols = 8
-        for row in range(rows):
-            cols_ = permanent[row*cols:(row+1)*cols]
-            cols_buttons = st.columns(len(cols_))
-            for i, num in enumerate(cols_):
-                if cols_buttons[i].button(num, key=f"perm_{num}"):
-                    st.session_state["tooth"] = num
-                    st.session_state["tooth_type"] = "Permanent"
-                    st.session_state["page"] = "chief"
-                    st.experimental_rerun()
-    elif type_select == "Primary":
-        primary = [chr(i) for i in range(65, 85)]  # A-T
-        rows = 4
-        cols = 5
-        for row in range(rows):
-            cols_ = primary[row*cols:(row+1)*cols]
-            cols_buttons = st.columns(len(cols_))
-            for i, let in enumerate(cols_):
-                if cols_buttons[i].button(let, key=f"prim_{let}"):
-                    st.session_state["tooth"] = let
-                    st.session_state["tooth_type"] = "Primary"
-                    st.session_state["page"] = "chief"
-                    st.experimental_rerun()
-    else:
-        regions = [
-            "Upper left", "Upper right",
-            "Lower left", "Lower right",
-            "Maxillary anteriors", "Mandibular anteriors", "Unknown"
-        ]
-        for r in regions:
-            if st.button(r, key=f"region_{r}"):
-                st.session_state["tooth"] = r
-                st.session_state["tooth_type"] = "Region"
-                st.session_state["page"] = "chief"
+def reset_state():
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+
+def tooth_selector():
+    st.markdown('<div class="tooth-heading">Permanent Teeth (1–32)</div>', unsafe_allow_html=True)
+    perm = [str(i) for i in range(1, 33)]
+    for row in range(0, 32, 8):
+        cols = st.columns(8)
+        for i, t in enumerate(perm[row:row+8]):
+            if cols[i].button(t, key=f"perm_{t}"):
+                st.session_state['tooth'] = t
+                st.session_state['tooth_type'] = "Permanent"
+                st.session_state['page'] = "chief"
                 st.experimental_rerun()
 
+    st.markdown('<div class="tooth-heading">Primary Teeth (A–T)</div>', unsafe_allow_html=True)
+    prim = [chr(i) for i in range(65, 85)]
+    for row in range(0, 20, 8):
+        cols = st.columns(8)
+        for i, t in enumerate(prim[row:row+8]):
+            if cols[i].button(t, key=f"prim_{t}"):
+                st.session_state['tooth'] = t
+                st.session_state['tooth_type'] = "Primary"
+                st.session_state['page'] = "chief"
+                st.experimental_rerun()
+
+    st.markdown('<div class="tooth-heading">Tooth Region</div>', unsafe_allow_html=True)
+    reg = [
+        "Upper left", "Upper right",
+        "Lower left", "Lower right",
+        "Maxillary anteriors", "Mandibular anteriors"
+    ]
+    cols = st.columns(len(reg))
+    for i, t in enumerate(reg):
+        if cols[i].button(t, key=f"reg_{t}"):
+            st.session_state['tooth'] = t
+            st.session_state['tooth_type'] = "Region"
+            st.session_state['page'] = "chief"
+            st.experimental_rerun()
+    st.markdown('<div class="tooth-heading">Other</div>', unsafe_allow_html=True)
+    if st.button("Unknown", key="unknown"):
+        st.session_state['tooth'] = "Unknown"
+        st.session_state['tooth_type'] = "Other"
+        st.session_state['page'] = "chief"
+        st.experimental_rerun()
+
+
 def chief_complaint_screen():
-    st.markdown(f"### Tooth: {st.session_state['tooth']}")
+    st.markdown(f"<span style='color:{NAVY}; font-weight:700'>Tooth: {st.session_state['tooth']}</span>", unsafe_allow_html=True)
     cc = st.text_area("Chief Complaint (optional):", key="chief_complaint")
     if st.button("Next: Pulpal Symptoms"):
         st.session_state["chief"] = cc
@@ -60,7 +84,7 @@ def chief_complaint_screen():
         st.experimental_rerun()
 
 def pulpal_screen():
-    st.markdown(f"### Pulpal Symptoms — Tooth {st.session_state['tooth']}")
+    st.markdown(f"<span style='color:{NAVY}; font-weight:700'>Pulpal Symptoms — Tooth {st.session_state['tooth']}</span>", unsafe_allow_html=True)
     opts = [
         "Sensitive to cold but resolves quickly",
         "Sensitive to cold and lingers (≥30s)",
@@ -79,7 +103,7 @@ def pulpal_screen():
         st.experimental_rerun()
 
 def periapical_screen():
-    st.markdown(f"### Periapical Symptoms — Tooth {st.session_state['tooth']}")
+    st.markdown(f"<span style='color:{NAVY}; font-weight:700'>Periapical Symptoms — Tooth {st.session_state['tooth']}</span>", unsafe_allow_html=True)
     opts = [
         "Sensitive to biting",
         "Sensitive to percussion",
@@ -92,8 +116,6 @@ def periapical_screen():
     for o in opts:
         if st.checkbox(o, key="peri_"+o):
             periapical.append(o)
-
-    # Red flag
     pulpal_resp = any(s in st.session_state.get("pulpal", []) for s in [
         "Sensitive to cold but resolves quickly",
         "Sensitive to cold and lingers (≥30s)",
@@ -103,16 +125,14 @@ def periapical_screen():
     swelling = "Facial swelling" in periapical
     sinus = "Sinus tract ('bump on gums')" in periapical
     if (swelling or sinus) and pulpal_resp:
-        msg = "Red flag: Pulpal diagnosis inconsistent with periapical findings. Recommend repeat testing."
-        st.error(msg)
-
+        st.error("Red flag: Pulpal diagnosis inconsistent with periapical findings. Recommend repeat testing.")
     if st.button("Next: Additional Tests"):
         st.session_state["periapical"] = periapical
         st.session_state["page"] = "additional"
         st.experimental_rerun()
 
 def additional_tests_screen():
-    st.markdown("### Additional Testing")
+    st.markdown(f"<span style='color:{NAVY}; font-weight:700'>Additional Testing</span>", unsafe_allow_html=True)
     dprob = st.checkbox("Any deep or narrow probings?")
     dtext = st.text_input("If probing, details (e.g. 8mm buccal pocket):")
     bstick = st.checkbox("Bite stick positive?")
@@ -124,7 +144,6 @@ def additional_tests_screen():
     mast = st.checkbox("Discomfort with muscles of mastication?")
     mastt = st.text_input("Which muscles/side?")
     occ = st.text_area("Occlusion description:")
-
     if st.button("Show Summary & Recommendation"):
         st.session_state["probing"] = dprob
         st.session_state["probing_detail"] = dtext
@@ -159,7 +178,6 @@ def treatment_recommendations(pulpal, periapical, caries, probing_detail, bite_s
     return "No specific treatment recommendation based on current findings."
 
 def summary_screen():
-    st.markdown("### Case Overview & Diagnosis")
     tooth = st.session_state["tooth"]
     chief = st.session_state.get("chief", "")
     pulpal = st.session_state.get("pulpal", [])
@@ -187,12 +205,12 @@ def summary_screen():
     if "No symptoms but radiolucency on Xrays" in peri:
         d_peri.append("Asymptomatic apical periodontitis")
     periapical_diag = ', '.join(d_peri) if d_peri else "Not determined"
-    st.markdown(f"**Tooth:** {tooth}")
+    st.markdown(f"<span style='color:{NAVY}; font-weight:700'>Tooth: {tooth}</span>", unsafe_allow_html=True)
     st.markdown(f"**Chief Complaint:** {chief if chief else 'Not provided'}")
     st.markdown(f"**Pulpal diagnosis:** {pulpal_diag}")
     st.markdown(f"**Periapical diagnosis:** {periapical_diag}")
 
-    # Red flag if mismatch between vital pulp and abscess/sinus tract
+    # Red flag if mismatch
     pulpal_resp = any(x in pulpal for x in [
         "Sensitive to cold but resolves quickly",
         "Sensitive to cold and lingers (≥30s)",
@@ -220,11 +238,9 @@ def summary_screen():
         st.session_state["recent"], st.session_state["mast"], st.session_state["occlusion"].strip()]):
         st.markdown("None")
 
-    # Crack/fracture warning
     if st.session_state["probing"] or st.session_state["bite_stick"]:
         st.error("Warning: Deep probing or bite stick positive – Possible crack or fracture present.")
 
-    # Recommendations
     previously_treated = "previously treated" in pulpal_diag or "Necrotic pulp" in pulpal_diag
     radiolucency = ("No symptoms but radiolucency on Xrays" in peri) or ("Asymptomatic apical periodontitis" in periapical_diag)
     any_symptoms = "Sensitive to biting" in peri or "Sensitive to percussion" in peri or "Sensitive to palpation" in peri
@@ -238,37 +254,29 @@ def summary_screen():
     st.success(rec)
     st.info("*For clinical decision-making, always corroborate these with full clinical exam and radiographic review.")
 
-# --- App Main Loop ---
-if __name__ == "__main__":
-    st.set_page_config(page_title="EndoDiagnosis Tool", layout="wide")
-    if "page" not in st.session_state: st.session_state["page"] = "tooth"
-    st.title("Endodontic Diagnosis Tool")
-    st.caption("by Summit Analytics LLC")
-    page = st.session_state["page"]
+# ---- Main App Logic ----
+if "page" not in st.session_state: st.session_state["page"] = "tooth"
+st.title("Endodontic Diagnosis Tool")
+st.caption("by Summit Analytics LLC")
 
-    if page == "tooth":
-        select_tooth()
-    elif page == "chief":
-        chief_complaint_screen()
-    elif page == "pulpal":
-        pulpal_screen()
-    elif page == "periapical":
-        periapical_screen()
-    elif page == "additional":
-        additional_tests_screen()
-    elif page == "summary":
-        summary_screen()
-
-    st.markdown("---")
-    if page != "tooth":
-        if st.button("Start Over"):
-            for k in list(st.session_state.keys()):
-                del st.session_state[k]
-            st.experimental_rerun()
-
-
-# In[ ]:
-
+page = st.session_state.get("page", "tooth")
+if page == "tooth":
+    tooth_selector()
+elif page == "chief":
+    chief_complaint_screen()
+elif page == "pulpal":
+    pulpal_screen()
+elif page == "periapical":
+    periapical_screen()
+elif page == "additional":
+    additional_tests_screen()
+elif page == "summary":
+    summary_screen()
+st.markdown("---")
+if page != "tooth":
+    if st.button("Start Over"):
+        reset_state()
+        st.experimental_rerun()
 
 
 
